@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    try {
+      const savedTheme = localStorage.getItem("baymax-theme");
+      if (savedTheme) {
+        document.documentElement.setAttribute("data-theme", savedTheme);
+        document.querySelector('meta[name="color-scheme"]').content = savedTheme === "light" ? "light" : "dark";
+      }
+    } catch (e) {}
+  </script>
+  <title>BAYMAX OBD — Plataforma Modular de Diagnóstico y Telemetría</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ==================================================================
+         BARRA LATERAL: NAVEGACIÓN POR MÓDULOS INDEPENDIENTES
+         ================================================================== -->
+    <aside class="sidebar" id="appSidebar">
+      <div>
+        <div class="brand-box">
+          <div class="brand-ident">
+            <div class="brand-badge mono">BX</div>
+            <div class="brand-text">
+              <div class="brand-name">Baymax OBD</div>
+              <div class="brand-sub">Suite Automotriz</div>
+            </div>
+          </div>
+          <button id="btnCollapseSidebar" class="btn btn-sm" title="Colapsar menú lateral" style="padding:4px 7px;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+        </div>
+
+        <nav class="nav-list">
+          <div class="nav-section-title">Monitoreo</div>
+
+          <button class="nav-btn active" data-module="modCockpit" data-title="Cabina en Vivo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 14l4-4"/><circle cx="12" cy="14" r="2"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>
+            </svg>
+            <span class="nav-label">1. Cabina en Vivo</span>
+          </button>
+
+          <button class="nav-btn" data-module="modScope" data-title="Osciloscopio y Matriz de Sensores">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span class="nav-label">2. Osciloscopio</span>
+          </button>
+
+          <div class="nav-section-title">Diagnóstico</div>
+
+          <button class="nav-btn" data-module="modDtcs" data-title="Escáner de Fallas (DTCs y Freeze Frame)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span class="nav-label">3. Códigos DTC</span>
+            <span id="navDtcBadge" class="nav-badge ok">0</span>
+          </button>
+
+          <button class="nav-btn" data-module="modAssistant" data-title="Agente Mecánico IA y Evidencia Web">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="nav-label">4. Agente Mecánico</span>
+          </button>
+
+          <div class="nav-section-title">Ingeniería</div>
+
+          <button class="nav-btn" data-module="modPerformance" data-title="Laboratorio Performance (Dyno y Pre-Stage)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            <span class="nav-label">5. Dyno &amp; Tuning</span>
+          </button>
+
+          <button class="nav-btn" data-module="modGarage" data-title="Mi Garaje, Bitácora y Manuales">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span class="nav-label">6. Mi Garaje</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="status-chip" id="pillInternet" style="justify-content:flex-start;">
+          <span class="status-dot"></span>
+          <span class="text sidebar-footer-text">Web Search: ...</span>
+        </div>
+        <div class="status-chip" id="pillLlm" style="justify-content:flex-start;">
+          <span class="status-dot"></span>
+          <span class="text sidebar-footer-text">IA Local: ...</span>
+        </div>
+        <button id="btnPullModel" class="btn btn-sm" style="display:none; width:100%;">
+          Descargar Qwen 2.5
+        </button>
+      </div>
+    </aside>
+
+    <!-- ==================================================================
+         BARRA SUPERIOR: VEHÍCULO, CONEXIÓN Y MODOS DE VISTA
+         ================================================================== -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="btnMobileMenu" class="btn btn-sm mobile-menu-btn" aria-label="Abrir menú de módulos">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <h1 class="module-heading" id="activeModuleTitle">Cabina en Vivo</h1>
+      </div>
+
+      <div class="topbar-center">
+        <div class="field-pill">
+          <label for="vehicleSelect">Vehículo</label>
+          <select id="vehicleSelect">
+            <option value="">Cargando...</option>
+          </select>
+        </div>
+
+        <div class="field-pill">
+          <label for="portSelect">Interfaz</label>
+          <select id="portSelect">
+            <option value="MOCK">Simulador Físico</option>
+          </select>
+        </div>
+
+        <button id="btnRescanPorts" class="btn btn-sm" title="Buscar puertos USB/Bluetooth">Buscar Puertos</button>
+        <button id="btnConnect" class="btn btn-primary btn-sm">Conectar</button>
+
+        <div class="status-chip" id="pillObd">
+          <span class="status-dot"></span>
+          <span class="text mono">Desconectado</span>
+        </div>
+      </div>
+
+      <!-- Selector de Modos de Vista -->
+      <div class="topbar-right">
+        <div class="theme-switcher" title="Cambiar modo de vista">
+          <button class="theme-btn active" data-set-theme="dark">Oscuro</button>
+          <button class="theme-btn" data-set-theme="light">Blanco</button>
+          <button class="theme-btn" data-set-theme="night">Noche</button>
+          <button class="theme-btn" data-set-theme="track">Pista</button>
+          <button class="theme-btn" data-set-theme="cyber">F1 Neón</button>
+        </div>
+        <button id="btnHudMode" class="btn btn-sm" title="Modo HUD Espejo para proyectar en el parabrisas de noche">
+          HUD Parabrisas
+        </button>
+      </div>
+    </header>
+
+    <!-- ==================================================================
+         ESCENARIO CENTRAL: UN SOLO MÓDULO ENFOCADO A LA VEZ
+         ================================================================== -->
+    <main class="stage">
+
+      <!-- ================================================================
+           MÓDULO 1: CABINA EN VIVO (COCKPIT)
+           ================================================================ -->
+      <section id="modCockpit" class="module-view active">
+
+        <!-- Barra de Simulador (solo visible cuando está en modo MOCK) -->
+        <div id="mockBar" class="sim-toolbar" style="display:none;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="status-chip online"><span class="status-dot"></span><span id="mockModeLabel" class="mono">SIMULADOR: RALENTÍ</span></span>
+            <span style="font-size:12px; color:var(--text-secondary);">Prueba el comportamiento del motor sin conectar el cable al carro:</span>
+          </div>
+          <div class="sim-mode-pills">
+            <button class="btn btn-sm" onclick="sendMockAction('idle')">Ralentí (Idle)</button>
+            <button class="btn btn-sm" onclick="sendMockAction('cruise')">Crucero 60 km/h</button>
+            <button class="btn btn-sm btn-primary" onclick="sendMockAction('pull')">Aceleración a Fondo (WOT)</button>
+            <button class="btn btn-sm btn-danger" onclick="sendMockAction('overheat')">Simular Calentamiento &gt;102°C</button>
+          </div>
+        </div>
+
+        <!-- 4 Medidores Radiales Principales -->
+        <div class="gauges-grid">
+          <!-- Gauge 1: RPM -->
+          <div class="gauge-card" id="cardRpm">
+            <svg class="gauge-svg" viewBox="0 0 180 130">
+              <path class="gauge-track" d="M 20 110 A 70 70 0 1 1 160 110" pathLength="100"/>
+              <path class="gauge-fill" id="arcRpm" d="M 20 110 A 70 70 0 1 1 160 110" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+              <text x="90" y="88" class="gauge-num mono" id="valRpm">--</text>
+              <text x="90" y="108" class="gauge-unit">RPM MOTOR</text>
+            </svg>
+            <div class="gauge-footer">
+              <span>Pico: <strong class="mono" id="peakRpm">0</strong></span>
+              <span>Corte: <strong class="mono" id="redlineRpm">6200</strong></span>
+            </div>
+          </div>
+
+          <!-- Gauge 2: Velocidad -->
+          <div class="gauge-card" id="cardSpeed">
+            <svg class="gauge-svg" viewBox="0 0 180 130">
+              <path class="gauge-track" d="M 20 110 A 70 70 0 1 1 160 110" pathLength="100"/>
+              <path class="gauge-fill" id="arcSpeed" d="M 20 110 A 70 70 0 1 1 160 110" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+              <text x="90" y="88" class="gauge-num mono" id="valSpeed">--</text>
+              <text x="90" y="108" class="gauge-unit">KM / H</text>
+            </svg>
+            <div class="gauge-footer">
+              <span>Flujo MAF</span>
+              <strong class="mono" id="subMaf">-- g/s</strong>
+            </div>
+          </div>
+
+          <!-- Gauge 3: Refrigerante (Parpadea si > 102 °C) -->
+          <div class="gauge-card" id="cardCoolant">
+            <svg class="gauge-svg" viewBox="0 0 180 130">
+              <path class="gauge-track" d="M 20 110 A 70 70 0 1 1 160 110" pathLength="100"/>
+              <path class="gauge-fill" id="arcCoolant" d="M 20 110 A 70 70 0 1 1 160 110" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+              <text x="90" y="88" class="gauge-num mono" id="valCoolant">--</text>
+              <text x="90" y="108" class="gauge-unit">REFRIGERANTE °C</text>
+            </svg>
+            <div class="gauge-footer">
+              <span>Admisión (IAT)</span>
+              <strong class="mono" id="subIat">-- °C</strong>
+            </div>
+          </div>
+
+          <!-- Gauge 4: MAP / Boost -->
+          <div class="gauge-card" id="cardMap">
+            <svg class="gauge-svg" viewBox="0 0 180 130">
+              <path class="gauge-track" d="M 20 110 A 70 70 0 1 1 160 110" pathLength="100"/>
+              <path class="gauge-fill" id="arcMap" d="M 20 110 A 70 70 0 1 1 160 110" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+              <text x="90" y="88" class="gauge-num mono" id="valMap">--</text>
+              <text x="90" y="108" class="gauge-unit">MAP (kPa)</text>
+            </svg>
+            <div class="gauge-footer">
+              <span>Presión Relativa</span>
+              <strong class="mono" id="subBoost">0.0 PSI</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Indicadores Secundarios -->
+        <div class="secondary-kpis">
+          <div class="mini-kpi">
+            <div class="mini-kpi-label"><span>Carga del Motor</span><span class="mono" id="subTps">TPS --%</span></div>
+            <div class="mini-kpi-val mono"><span id="valLoad">--</span>%</div>
+            <div class="mini-kpi-bar"><div id="barLoad" style="width:0%"></div></div>
+          </div>
+
+          <div class="mini-kpi">
+            <div class="mini-kpi-label"><span>Voltaje de Batería / Alt</span><span>PID 42</span></div>
+            <div class="mini-kpi-val mono"><span id="valVoltage">--.-</span> V</div>
+            <div class="mini-kpi-bar"><div id="barVoltage" style="width:0%"></div></div>
+          </div>
+
+          <div class="mini-kpi">
+            <div class="mini-kpi-label"><span>Corrector Corto (STFT B1)</span><span>PID 06</span></div>
+            <div class="mini-kpi-val mono" id="valStft">--%</div>
+            <div class="mini-kpi-bar"><div id="barStft" style="width:50%"></div></div>
+          </div>
+
+          <div class="mini-kpi">
+            <div class="mini-kpi-label"><span>Corrector Largo (LTFT B1)</span><span>PID 07</span></div>
+            <div class="mini-kpi-val mono" id="valLtft">--%</div>
+            <div class="mini-kpi-bar"><div id="barLtft" style="width:50%"></div></div>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Resumen de Estado del Vehículo -->
+        <div class="card responsive-split-card">
+          <div>
+            <div class="card-title" id="cockpitHealthTitle">Estado General del Motor</div>
+            <div class="card-subtitle" id="cockpitHealthSub">Monitoreando telemetría en tiempo real a 10 Hz.</div>
+          </div>
+          <div class="action-row">
+            <button class="btn btn-sm" onclick="switchModule('modScope')">Abrir Osciloscopio</button>
+            <button class="btn btn-sm btn-primary" onclick="switchModule('modDtcs')">Revisar Códigos DTC</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================================================================
+           MÓDULO 2: OSCILOSCOPIO & MATRIZ DE SENSORES
+           ================================================================ -->
+      <section id="modScope" class="module-view">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Osciloscopio Multicanal en Tiempo Real</div>
+              <div class="card-subtitle" id="scopeLegend">Pasa el cursor sobre la gráfica para inspeccionar valores exactos.</div>
+            </div>
+            <div class="action-row">
+              <select id="scopeMode" class="btn btn-sm">
+                <option value="trims">Canal A: Fuel Trims (STFT vs LTFT %)</option>
+                <option value="rpm_map">Canal B: Inducción (RPM vs MAP kPa)</option>
+                <option value="timing_iat">Canal C: Encendido (Avance ° vs IAT °C)</option>
+              </select>
+              <button id="btnScopeHold" class="btn btn-sm">Pausar Señal</button>
+              <button id="btnScopeClear" class="btn btn-sm">Limpiar</button>
+            </div>
+          </div>
+
+          <div class="scope-container">
+            <canvas id="scopeCanvas"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Matriz Completa de Sensores OBD-II (Modo 01)</div>
+              <div class="card-subtitle">Lectura instantánea con registro de mínimo y máximo de la sesión.</div>
+            </div>
+          </div>
+          <div class="sensor-matrix-grid" id="sensorMatrixGrid">
+            <!-- Se llena en vivo desde telemetry_ws.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           MÓDULO 3: ESCÁNER DE CÓDIGOS (DTCs & FREEZE FRAME)
+           ================================================================ -->
+      <section id="modDtcs" class="module-view">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Memoria de Averías de la ECU (Modo 03 Activos / Modo 07 Pendientes)</div>
+              <div class="card-subtitle">Selecciona un código para inspeccionar la foto de sensores en el instante del fallo (Freeze Frame).</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="btnRefreshDtcs" class="btn btn-sm">Volver a Escanear ECU</button>
+              <button id="btnClearDtcs" class="btn btn-sm btn-danger">Borrar Códigos (Modo 04)</button>
+            </div>
+          </div>
+
+          <div class="dtc-workspace">
+            <!-- Lista de Códigos -->
+            <div id="dtcList" style="display:flex; flex-direction:column; gap:10px;">
+              <!-- Se llena dinámicamente -->
+            </div>
+
+            <!-- Inspector de Freeze Frame (Modo 02) -->
+            <div class="card" style="background:var(--bg-surface-2);">
+              <div class="card-title" id="ffPanelTitle">Instantánea Freeze Frame (Modo 02)</div>
+              <div class="card-subtitle">Condiciones exactas de operación cuando la ECU detectó la falla:</div>
+              <div class="ff-grid" id="ffGrid">
+                <!-- Se llena al seleccionar un DTC -->
+              </div>
+              <div id="ffActions" style="margin-top:16px; display:flex; gap:10px;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           MÓDULO 4: AGENTE MECÁNICO IA (BAYMAX)
+           ================================================================ -->
+      <section id="modAssistant" class="module-view">
+        <div class="assistant-layout">
+
+          <!-- Columna Principal: Conversación y Dictámenes -->
+          <div class="card chat-panel" style="padding:0;">
+            <div class="chat-panel-header">
+              <div>
+                <div class="card-title">Asistente de Diagnóstico Automotriz</div>
+                <div class="card-subtitle">Contexto activo: <strong id="ctxVehicle">--</strong> | Trims: <strong id="ctxTrims" class="mono">--</strong> | DTCs: <strong id="ctxDtcs" class="mono">--</strong></div>
+              </div>
+              <div class="action-row">
+                <button id="btnToggleContext" class="btn btn-sm">Ver Contexto Inyectado</button>
+                <button id="btnClearChat" class="btn btn-sm">Limpiar</button>
+              </div>
+            </div>
+
+            <pre id="contextInspector" style="display:none; background:var(--bg-input); padding:12px 18px; font-size:11px; max-height:160px; overflow-y:auto; border-bottom:1px solid var(--border-color);" class="mono"></pre>
+
+            <div id="agentMessages" class="chat-stream">
+              <div class="msg-card">
+                <div class="msg-header"><span>BAYMAX MECÁNICO</span><span>SISTEMA LISTO</span></div>
+                <div class="msg-content">
+                  <p>El agente ya recibe automáticamente el vehículo seleccionado, las lecturas actuales de los sensores, los códigos DTC activos y el historial de <code>garage.db</code>.</p>
+                  <p>Escribe un síntoma abajo o selecciona un código en el módulo <strong>Códigos DTC</strong> para iniciar un diagnóstico cruzado con búsqueda web.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-panel-footer">
+              <div class="chat-input-row">
+                <input type="text" id="inputSymptoms" placeholder="Describe un síntoma (ej: tiembla en mínimo caliente, tarda en encender...)">
+                <button id="btnDiagnoseSymptoms" class="btn btn-primary">Diagnosticar Síntoma</button>
+              </div>
+              <div class="chat-input-row">
+                <input type="text" id="chatInput" placeholder="Haz una pregunta libre (ej: ¿a cuántos gramos/s debe leer el MAF de la 4Runner en ralentí?)">
+                <button id="btnSendChat" class="btn">Enviar Consulta</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna Lateral: Fuentes Web y Manuales -->
+          <div class="card evidence-sidebar">
+            <div>
+              <div class="card-title">Fuentes y Evidencia Técnica</div>
+              <div class="card-subtitle">Foros, boletines y manuales consultados en el diagnóstico:</div>
+            </div>
+            <div id="evidenceContainer" style="display:flex; flex-direction:column; gap:10px;">
+              <div style="color:var(--text-muted); font-size:12.5px; padding:12px 0;">
+                Al ejecutar un diagnóstico, aquí aparecerán los fragmentos extraídos de internet (DuckDuckGo) y de tus manuales PDF.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================================================================
+           MÓDULO 5: LABORATORIO PERFORMANCE (DYNO & PRE-STAGE)
+           ================================================================ -->
+      <section id="modPerformance" class="module-view">
+
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="subtabs-nav">
+            <button class="subtab-btn active" data-perf-tab="perfDyno">Dinamómetro Virtual (WHP / Torque)</button>
+            <button class="subtab-btn" data-perf-tab="perfPrestage">Validador Pre-Stage (Salud para Repro)</button>
+          </div>
+        </div>
+
+        <!-- Sub-vista A: Virtual Dyno -->
+        <div id="perfDyno" style="display:flex; flex-direction:column; gap:16px;">
+          <div class="dyno-kpis">
+            <div class="mini-kpi">
+              <div class="mini-kpi-label"><span>Potencia a la Rueda</span><span id="dynoPeakHpRpm" class="mono">@ -- RPM</span></div>
+              <div class="mini-kpi-val mono" id="dynoPeakHp">-- WHP</div>
+            </div>
+            <div class="mini-kpi">
+              <div class="mini-kpi-label"><span>Torque Máximo</span><span id="dynoPeakTqRpm" class="mono">@ -- RPM</span></div>
+              <div class="mini-kpi-val mono" id="dynoPeakTq">-- lb-ft</div>
+            </div>
+            <div class="mini-kpi">
+              <div class="mini-kpi-label"><span>Potencia Est. al Motor</span><span>15% pérdida</span></div>
+              <div class="mini-kpi-val mono" id="dynoCrankHp">-- BHP</div>
+            </div>
+            <div class="mini-kpi">
+              <div class="mini-kpi-label"><span>Duración del Pull</span><span id="dynoSpeedSpan" class="mono">-- km/h</span></div>
+              <div class="mini-kpi-val mono" id="dynoPullTime">-- s</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="action-row">
+                <span class="card-title">Curva de Potencia y Torque</span>
+                <select id="dynoGearSelect" class="btn btn-sm">
+                  <option value="2">2ª Marcha</option>
+                  <option value="3" selected>3ª Marcha</option>
+                  <option value="4">4ª Marcha</option>
+                </select>
+                <span class="card-subtitle" id="dynoRunStatus">Acelera a fondo de 2,000 RPM al corte en calle plana.</span>
+              </div>
+              <div class="action-row">
+                <button id="btnStartDyno" class="btn btn-primary">Iniciar Pull de Dyno</button>
+                <button id="btnStopDyno" class="btn btn-danger" style="display:none;">Detener y Calcular</button>
+              </div>
+            </div>
+            <div class="dyno-chart-box">
+              <canvas id="dynoChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-vista B: Pre-Stage Check -->
+        <div id="perfPrestage" style="display:none; flex-direction:column; gap:16px;">
+          <div class="card responsive-split-card">
+            <div class="prestage-metrics-row">
+              <div>
+                <div class="card-subtitle">Índice de Salud</div>
+                <div style="font-size:clamp(22px, 3vw, 32px); font-weight:800;" class="mono" id="prestageScore">-- / 100</div>
+              </div>
+              <div>
+                <div class="card-subtitle">Veredicto Stage 1 / 2</div>
+                <div style="font-size:clamp(20px, 2.5vw, 26px); font-weight:800;" class="mono" id="prestageVerdict">EN ESPERA</div>
+              </div>
+              <div style="max-width:520px; min-inline-size:0;">
+                <div class="card-title">Auditoría de 7 Puntos antes de Reprogramar</div>
+                <div class="card-subtitle" id="prestageSummary">Evalúa Fuel Trims, retardo de chispa por cascabeleo (PID 0E), saturación del intercooler (IAT), caída de boost y sistema de carga.</div>
+              </div>
+            </div>
+            <button id="btnStartPrestage" class="btn btn-primary">Iniciar Prueba de Estrés</button>
+          </div>
+
+          <div class="check-list-grid" id="prestageCheckList">
+            <!-- Tarjetas de los 7 chequeos -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================================================================
+           MÓDULO 6: MI GARAJE, BITÁCORA Y MANUALES
+           ================================================================ -->
+      <section id="modGarage" class="module-view">
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Flota Registrada en garage.db</div>
+              <div class="card-subtitle">Haz clic en un vehículo para activarlo y consultar su bitácora de servicio.</div>
+            </div>
+            <div class="action-row">
+              <button id="btnIndexManuals" class="btn btn-sm">Indexar Manuales PDF (./data/manuals)</button>
+              <button id="btnOpenNewVehicle" class="btn btn-sm btn-primary">+ Agregar Vehículo</button>
+            </div>
+          </div>
+
+          <div class="fleet-grid" id="garageFleetGrid">
+            <!-- Tarjetas de vehículos -->
+          </div>
+        </div>
+
+        <div class="dtc-workspace">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Bitácora de Soluciones Reales Verificadas</div>
+                <div class="card-subtitle">Soluciones que aplicaste y que alimentan la memoria del Agente IA:</div>
+              </div>
+            </div>
+            <div id="garageRepairsList" style="display:flex; flex-direction:column; gap:10px;">
+              <!-- Historial de reparaciones -->
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Historial de Corridas Dyno &amp; Pre-Stage</div>
+                <div class="card-subtitle">Mediciones guardadas para este vehículo:</div>
+              </div>
+            </div>
+            <div id="garageRunsList" style="display:flex; flex-direction:column; gap:10px;">
+              <!-- Historial de pulls -->
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- ==================================================================
+         BARRA INFERIOR MÓVIL: ACCESO RÁPIDO CON UNA MANO EN CABINA
+         ================================================================== -->
+    <nav class="mobile-bottom-nav" aria-label="Navegación rápida móvil">
+      <button class="nav-btn active" data-module="modCockpit" data-title="Cabina en Vivo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 14l4-4"/><circle cx="12" cy="14" r="2"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+        <span>Cabina</span>
+      </button>
+      <button class="nav-btn" data-module="modScope" data-title="Osciloscopio y Matriz de Sensores">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>Scope</span>
+      </button>
+      <button class="nav-btn" data-module="modDtcs" data-title="Escáner de Fallas (DTCs y Freeze Frame)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>DTCs</span>
+      </button>
+      <button class="nav-btn" data-module="modAssistant" data-title="Agente Mecánico IA y Evidencia Web">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>IA</span>
+      </button>
+      <button class="nav-btn" data-module="modPerformance" data-title="Laboratorio Performance (Dyno y Pre-Stage)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <span>Dyno</span>
+      </button>
+      <button class="nav-btn" data-module="modGarage" data-title="Mi Garaje, Bitácora y Manuales">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Garaje</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ====================================================================
+       MODAL 1: GUARDAR SOLUCIÓN REAL APLICADA
+       ==================================================================== -->
+  <div id="modalFix" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="card-title">Registrar Solución Aplicada en Taller</div>
+      <div class="form-group">
+        <label>Código DTC o Síntoma</label>
+        <input type="text" id="fixDtcCode" readonly>
+      </div>
+      <div class="form-group">
+        <label>¿Qué pieza cambiaste o qué reparación hiciste realmente?</label>
+        <textarea id="fixText" rows="3" placeholder="Ej: Cambio de manguera de vacío rota detrás del cuerpo de aceleración y limpieza de sensor MAF."></textarea>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer;">
+        <input type="checkbox" id="fixVerified" checked>
+        La reparación eliminó la falla y normalizó las lecturas
+      </label>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px;">
+        <button class="btn" onclick="closeFixModal()">Cancelar</button>
+        <button id="btnSubmitFix" class="btn btn-primary">Guardar en garage.db</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 2: AGREGAR NUEVO VEHÍCULO A LA FLOTA
+       ==================================================================== -->
+  <div id="modalNewVehicle" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="card-title">Agregar Vehículo a tu Flota</div>
+      <div class="modal-form-grid">
+        <div class="form-group">
+          <label>Alias (Ej: El Civic)</label>
+          <input type="text" id="nvAlias" placeholder="Mi Carro">
+        </div>
+        <div class="form-group">
+          <label>Año</label>
+          <input type="number" id="nvYear" value="2015">
+        </div>
+        <div class="form-group">
+          <label>Marca</label>
+          <input type="text" id="nvMake" placeholder="Honda">
+        </div>
+        <div class="form-group">
+          <label>Modelo</label>
+          <input type="text" id="nvModel" placeholder="Civic Si">
+        </div>
+        <div class="form-group">
+          <label>Código de Motor</label>
+          <input type="text" id="nvEngine" placeholder="K24Z7 2.4L">
+        </div>
+        <div class="form-group">
+          <label>Aspiración</label>
+          <select id="nvAspiration">
+            <option value="NA">Aspirado Natural (NA)</option>
+            <option value="TURBO">Turbo / Supercargado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Peso en vacío (kg)</label>
+          <input type="number" id="nvWeight" value="1350">
+        </div>
+        <div class="form-group">
+          <label>Corte de RPM (Redline)</label>
+          <input type="number" id="nvRedline" value="6500">
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px;">
+        <button class="btn" onclick="document.getElementById('modalNewVehicle').classList.remove('active')">Cancelar</button>
+        <button id="btnSaveNewVehicle" class="btn btn-primary">Crear Vehículo</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/telemetry_ws.js"></script>
+  <script src="/static/js/dyno_prestage.js"></script>
+  <script src="/static/js/agent_chat.js"></script>
+</body>
+</html>

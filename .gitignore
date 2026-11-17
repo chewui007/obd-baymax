@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Runtime databases & local vector stores (auto-generated on startup)
+data/garage.db
+data/garage.db-shm
+data/garage.db-wal
+data/chroma_data/
+
+# Keep manuals folder structure, ignore large local PDFs unless explicitly added
+data/manuals/*.pdf
+!data/manuals/.gitkeep
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*.log
+
